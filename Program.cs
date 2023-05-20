@@ -142,7 +142,7 @@ namespace bruhshot
                         Assets = new Assets() {
                             LargeImageKey = gameInfo[2],
                             LargeImageText = gameInfo[0],
-                            SmallImageKey = "newlogo",
+                            SmallImageKey = "logo3",
                             SmallImageText = "Username - @" + userName
                         }
                     });
