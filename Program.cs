@@ -107,7 +107,7 @@ namespace bruhshot
             JObject moreInfo = QuickGet("https://games.roblox.com/v1/games?universeIds=" + universeId);
             string gameName = (string) moreInfo["data"][0]["name"];
             string creator = (string)moreInfo["data"][0]["creator"]["name"];
-            if ((bool)moreInfo["data"][0]["creator"]["hasVerifiedBadge"]) { creator += "☑"; };
+            if ((bool)moreInfo["data"][0]["creator"]["hasVerifiedBadge"]) { creator += " ✔"; };
             if ((string)moreInfo["data"][0]["creator"]["type"] == "User") { creator = "@" + creator; };
             if (gameName.Length < 2) { gameName += " "; };
             creator = "By " + creator;
