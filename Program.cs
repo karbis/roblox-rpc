@@ -143,7 +143,7 @@ namespace bruhshot
                             LargeImageKey = gameInfo[2],
                             LargeImageText = gameInfo[0],
                             SmallImageKey = "logo3",
-                            SmallImageText = "Username - @" + userName
+                            SmallImageText = "@" + userName
                         }
                     });
                     break;
