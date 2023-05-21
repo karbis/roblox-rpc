@@ -110,10 +110,11 @@ namespace bruhshot
 
         private static dynamic[] GetGameInfo(string placeId) {
             if (placeId == "0") {
-                dynamic[] returnValue2 = { "Local File","","" };
+                dynamic[] returnValue2 = { "a Local File","","" };
 
                 return returnValue2;
             }
+            Settings.Default.Reload();
             JObject info = QuickGet("https://apis.roblox.com/universes/v1/places/" + placeId + "/universe"); // why does the games.roblox.com version require authentication
             string universeId = (string)info["universeId"];
             JObject moreInfo = QuickGet("https://games.roblox.com/v1/games?universeIds=" + universeId);
@@ -125,6 +126,10 @@ namespace bruhshot
             creator = "By " + creator;
             JObject iconData = QuickGet("https://thumbnails.roblox.com/v1/games/icons?universeIds=" + universeId + "&returnPolicy=PlaceHolder&size=512x512&format=Png&isCircular=false");
             string iconLink = (string)iconData["data"][0]["imageUrl"];
+
+            if (creator == "By @Templates" && !inPlayer) { creator = ""; };
+            if (!Settings.Default.StudioRevealGameInformation && !inPlayer) { creator = ""; gameName = "a Game"; iconLink = ""; };
+            if (!Settings.Default.PlayerRevealGameInformation && inPlayer) { creator = ""; gameName = "Playing a Game"; iconLink = ""; };
 
             dynamic[] returnValue = { gameName, creator, iconLink };
 
@@ -149,7 +154,17 @@ namespace bruhshot
                     gaming = true;
                     var gameInfo = GetGameInfo(gameId);
 
-                    DiscordRPC.Button[] buttons = { new DiscordRPC.Button() { Label = "Game Link", Url = "https://www.roblox.com/games/" + gameId + "/redirect" } };
+                    DiscordRPC.Button[] buttons = { };
+                    if (Settings.Default.PlayerGameLinkButton) {
+                        buttons = buttons.Append(new DiscordRPC.Button() { Label = "Game Link", Url = "https://www.roblox.com/games/" + gameId + "/redirect" }).ToArray();
+                    }
+                    if (Settings.Default.PlayerJoinServerButton) {
+                        buttons = buttons.Append(new DiscordRPC.Button() { Label = "Join Server", Url = "roblox://experiences/start?placeId=" + gameId + "&gameInstanceId=" + Regex.Match(line, "\"jobId\":\"([^\"]+)\"").Groups[1].Value }).ToArray();
+                    }
+                    userName = "@" + userName;
+                    if (!Settings.Default.PlayerRevealUsername) {
+                        userName = "Roblox";
+                    }
 
                     client = new DiscordRpcClient("1109427796494798949");
                     client.Initialize();
@@ -162,7 +177,7 @@ namespace bruhshot
                             LargeImageKey = gameInfo[2],
                             LargeImageText = gameInfo[0],
                             SmallImageKey = "logo3",
-                            SmallImageText = "@" + userName
+                            SmallImageText = userName
                         }
                     });
                     break;

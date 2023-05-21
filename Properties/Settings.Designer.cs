@@ -22,5 +22,65 @@ namespace robloxrpc.Properties {
                 return defaultInstance;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool PlayerRevealUsername {
+            get {
+                return ((bool)(this["PlayerRevealUsername"]));
+            }
+            set {
+                this["PlayerRevealUsername"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool PlayerJoinServerButton {
+            get {
+                return ((bool)(this["PlayerJoinServerButton"]));
+            }
+            set {
+                this["PlayerJoinServerButton"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool PlayerGameLinkButton {
+            get {
+                return ((bool)(this["PlayerGameLinkButton"]));
+            }
+            set {
+                this["PlayerGameLinkButton"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool StudioRevealGameInformation {
+            get {
+                return ((bool)(this["StudioRevealGameInformation"]));
+            }
+            set {
+                this["StudioRevealGameInformation"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool PlayerRevealGameInformation {
+            get {
+                return ((bool)(this["PlayerRevealGameInformation"]));
+            }
+            set {
+                this["PlayerRevealGameInformation"] = value;
+            }
+        }
     }
 }
