@@ -39,6 +39,8 @@ namespace bruhshot
         static bool gaming = false;
         static DiscordRpcClient client;
         static HttpClient httpClient;
+        static bool inPlayer = true;
+        static int lastLineCount = 0;
 
         public MyCustomApplicationContext() {
             // Initialize Tray Icon
@@ -70,16 +72,21 @@ namespace bruhshot
             httpClient = new HttpClient(handler);
         }
         private static void FileCreated(object sender, FileSystemEventArgs e) {
-            if (!e.Name.Contains("Player")) { return; } // filter out studio logs, might add support later tho
+            if (gaming) { return; };
+            inPlayer = e.Name.Contains("Player");
             if (lastTimer != null) {
                 lastTimer.Stop();
                 lastTimer.Dispose();
             }
             currentPath = e.FullPath;
             lastTimer = new System.Timers.Timer(1000);
-            lastTimer.Elapsed += OnFileUpdate;
             lastTimer.AutoReset = true;
             lastTimer.Enabled = true;
+            if (inPlayer) {
+                lastTimer.Elapsed += OnFileUpdateForPlayer;
+            } else {
+                lastTimer.Elapsed += OnFileUpdateForStudio;
+            }
         }
 
         public static async Task<string[]> ReadAllLinesAsync(string path) {
@@ -102,6 +109,11 @@ namespace bruhshot
         }
 
         private static dynamic[] GetGameInfo(string placeId) {
+            if (placeId == "0") {
+                dynamic[] returnValue2 = { "Local File","","" };
+
+                return returnValue2;
+            }
             JObject info = QuickGet("https://apis.roblox.com/universes/v1/places/" + placeId + "/universe"); // why does the games.roblox.com version require authentication
             string universeId = (string)info["universeId"];
             JObject moreInfo = QuickGet("https://games.roblox.com/v1/games?universeIds=" + universeId);
@@ -119,11 +131,18 @@ namespace bruhshot
             return returnValue;
         }
 
-        private static void OnFileUpdate(Object source, ElapsedEventArgs e) {
+        private static void OnFileUpdateForPlayer(Object source, ElapsedEventArgs e) {
             var lines = Task.Run(async () => await ReadAllLinesAsync(currentPath)).Result;
+            if (lastLineCount == lines.Length) { return; };
+            lastLineCount = lines.Length;
+            Array.Reverse(lines);
+            if (lines.Length > 200) {
+                Array.Resize(ref lines, 200);
+            }
 
             foreach (string line in lines) {
-                if (line.Contains(@"https://assetgame.roblox.com/Game/Join") && !gaming) {
+                if (line.Contains(@"https://assetgame.roblox.com/Game/Join")) {
+                    if (gaming) { break; };
                     Console.WriteLine("OK");
                     string gameId = Regex.Match(line, @"placeId%3d(\d+)%26").Groups[1].Value;
                     string userName = Regex.Match(line, @"UserName%22%3a%22([^%]+)%22").Groups[1].Value;
@@ -147,7 +166,66 @@ namespace bruhshot
                         }
                     });
                     break;
-                } else if (line.Contains("Fmod Closed.") && gaming) {
+                } else if (line.Contains("unregisterMemoryPrioritizationCallback")) {
+                    gaming = false;
+                    lastTimer.Stop();
+                    lastTimer.Dispose();
+                    client.Dispose();
+                    lastTimer = null;
+                    break;
+                } else if (line.Contains("[FLog::WindowsLuaApp] Application did receive notification")) {
+                    if (!gaming) { break; };
+                    gaming = false;
+                    client.Dispose();
+                    break;
+                }
+            }
+        }
+
+        private static void OnFileUpdateForStudio(Object source, ElapsedEventArgs e) {
+            var lines = Task.Run(async () => await ReadAllLinesAsync(currentPath)).Result;
+            if (lastLineCount == lines.Length) { return;  };
+            lastLineCount = lines.Length;
+            Array.Reverse(lines);
+            if (lines.Length > 200) {
+                Array.Resize(ref lines, 200);
+            }
+
+            foreach (string line in lines) {
+                if (line.Contains("RobloxIDEDoc::open - start")) {
+                    if (gaming) { break; };
+                    string gameId = Regex.Match(line, @"placeId: (\d+)").Groups[1].Value;
+                    gaming = true;
+                    var gameInfo = GetGameInfo(gameId);
+
+                    client = new DiscordRpcClient("1109820127605686273");
+                    client.Initialize();
+
+                    RichPresence richPresence = new RichPresence() {
+                        Details = "Editing " + gameInfo[0],
+                        Timestamps = new Timestamps { Start = DateTime.UtcNow },
+                        Assets = new Assets() {
+                            LargeImageKey = "logo3",
+                            LargeImageText = "Roblox Studio"
+                        }
+                    };
+
+                    if (gameInfo[1] != "") {
+                        richPresence.State = gameInfo[1];
+                    };
+                    if (gameInfo[2] != "") {
+                        richPresence.Assets.SmallImageKey = gameInfo[2];
+                        richPresence.Assets.SmallImageText = gameInfo[0];
+                    };
+
+                    client.SetPresence(richPresence);
+                    break;
+                } else if (line.Contains("RobloxIDEDoc::~RobloxIDEDoc - end")) {
+                    if (!gaming) { break; }
+                    gaming = false;
+                    client.Dispose();
+                    break;
+                } else if (line.Contains("About to exit the application, doing cleanup.")) {
                     gaming = false;
                     lastTimer.Stop();
                     lastTimer.Dispose();
