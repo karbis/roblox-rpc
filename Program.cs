@@ -41,6 +41,7 @@ namespace bruhshot
         static HttpClient httpClient;
         static bool inPlayer = true;
         static int lastLineCount = 0;
+        static string storedUsername = "";
 
         public MyCustomApplicationContext() {
             // Initialize Tray Icon
@@ -151,6 +152,7 @@ namespace bruhshot
                     Console.WriteLine("OK");
                     string gameId = Regex.Match(line, @"placeId%3d(\d+)%26").Groups[1].Value;
                     string userName = Regex.Match(line, @"UserName%22%3a%22([^%]+)%22").Groups[1].Value;
+                    storedUsername = userName;
                     gaming = true;
                     var gameInfo = GetGameInfo(gameId);
 
@@ -209,9 +211,15 @@ namespace bruhshot
             foreach (string line in lines) {
                 if (line.Contains("RobloxIDEDoc::open - start")) {
                     if (gaming) { break; };
+                    Console.WriteLine("!");
                     string gameId = Regex.Match(line, @"placeId: (\d+)").Groups[1].Value;
                     gaming = true;
                     var gameInfo = GetGameInfo(gameId);
+
+                    DiscordRPC.Button[] buttons = { };
+                    if (Settings.Default.StudioGameLinkButton) {
+                        buttons = buttons.Append(new DiscordRPC.Button() { Label = "Game Link", Url = "https://www.roblox.com/games/" + gameId + "/redirect" }).ToArray();
+                    }
 
                     client = new DiscordRpcClient("1109820127605686273");
                     client.Initialize();
@@ -219,6 +227,7 @@ namespace bruhshot
                     RichPresence richPresence = new RichPresence() {
                         Details = "Editing " + gameInfo[0],
                         Timestamps = new Timestamps { Start = DateTime.UtcNow },
+                        Buttons = buttons,
                         Assets = new Assets() {
                             LargeImageKey = "logo3",
                             LargeImageText = "Roblox Studio"
@@ -232,6 +241,9 @@ namespace bruhshot
                         richPresence.Assets.SmallImageKey = gameInfo[2];
                         richPresence.Assets.SmallImageText = gameInfo[0];
                     };
+                    if (storedUsername != "" && Settings.Default.StudioRevealUsername) {
+                        richPresence.Assets.LargeImageText = "@" + storedUsername;
+                    }
 
                     client.SetPresence(richPresence);
                     break;

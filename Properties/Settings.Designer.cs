@@ -82,5 +82,29 @@ namespace robloxrpc.Properties {
                 this["PlayerRevealGameInformation"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool StudioRevealUsername {
+            get {
+                return ((bool)(this["StudioRevealUsername"]));
+            }
+            set {
+                this["StudioRevealUsername"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool StudioGameLinkButton {
+            get {
+                return ((bool)(this["StudioGameLinkButton"]));
+            }
+            set {
+                this["StudioGameLinkButton"] = value;
+            }
+        }
     }
 }
