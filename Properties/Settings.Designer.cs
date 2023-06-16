@@ -106,5 +106,17 @@ namespace robloxrpc.Properties {
                 this["StudioGameLinkButton"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool StudioSwapIconAndLogo {
+            get {
+                return ((bool)(this["StudioSwapIconAndLogo"]));
+            }
+            set {
+                this["StudioSwapIconAndLogo"] = value;
+            }
+        }
     }
 }

@@ -168,6 +168,7 @@ namespace bruhshot
                         userName = "Roblox";
                     }
 
+
                     client = new DiscordRpcClient("1109427796494798949");
                     client.Initialize();
                     client.SetPresence(new RichPresence() {
@@ -244,19 +245,34 @@ namespace bruhshot
                     if (storedUsername != "" && Settings.Default.StudioRevealUsername) {
                         richPresence.Assets.LargeImageText = "@" + storedUsername;
                     }
+                    if (Settings.Default.StudioSwapIconAndLogo) {
+                        Assets rpcAssets = richPresence.Assets;
+                        string LIK = rpcAssets.LargeImageKey;
+                        string LIT = rpcAssets.LargeImageText;
+                        string SIK = rpcAssets.SmallImageKey;
+                        string SIT = rpcAssets.SmallImageText;
+                        rpcAssets.SmallImageText = LIT;
+                        rpcAssets.SmallImageKey = LIK;
+                        rpcAssets.LargeImageText = SIT;
+                        rpcAssets.LargeImageKey = SIK;
+                    }
 
                     client.SetPresence(richPresence);
                     break;
                 } else if (line.Contains("RobloxIDEDoc::~RobloxIDEDoc - end")) {
                     if (!gaming) { break; }
                     gaming = false;
-                    client.Dispose();
+                    if (client != null) {
+                        client.Dispose();
+                    }
                     break;
                 } else if (line.Contains("About to exit the application, doing cleanup.")) {
                     gaming = false;
                     lastTimer.Stop();
                     lastTimer.Dispose();
-                    client.Dispose();
+                    if (client != null) {
+                        client.Dispose();
+                    }
                     lastTimer = null;
                     break;
                 }
