@@ -42,6 +42,7 @@ namespace bruhshot
         static bool inPlayer = true;
         static int lastLineCount = 0;
         static string storedUsername = "";
+        static bool playtestingStudio = false;
 
         public MyCustomApplicationContext() {
             // Initialize Tray Icon
@@ -149,7 +150,6 @@ namespace bruhshot
             foreach (string line in lines) {
                 if (line.Contains(@"https://assetgame.roblox.com/Game/Join")) {
                     if (gaming) { break; };
-                    Console.WriteLine("OK");
                     string gameId = Regex.Match(line, @"placeId%3d(\d+)%26").Groups[1].Value;
                     string userName = Regex.Match(line, @"UserName%22%3a%22([^%]+)%22").Groups[1].Value;
                     storedUsername = userName;
@@ -262,12 +262,14 @@ namespace bruhshot
                 } else if (line.Contains("RobloxIDEDoc::~RobloxIDEDoc - end")) {
                     if (!gaming) { break; }
                     gaming = false;
+                    playtestingStudio = false;
                     if (client != null) {
                         client.Dispose();
                     }
                     break;
                 } else if (line.Contains("About to exit the application, doing cleanup.")) {
                     gaming = false;
+                    playtestingStudio = false;
                     lastTimer.Stop();
                     lastTimer.Dispose();
                     if (client != null) {
@@ -275,6 +277,33 @@ namespace bruhshot
                     }
                     lastTimer = null;
                     break;
+                } else if (line.Contains("Studio Play Testing Playable Times")) {
+                    if (playtestingStudio) { break; }
+                    if (!gaming) { break; }
+                    RichPresence newPresence = client.CurrentPresence.Clone();
+                    string linkRegex = @"mp:external\/.*?\/https\/(.*)";
+                    if (Settings.Default.StudioSwapIconAndLogo) {
+                        newPresence.Assets.LargeImageKey = "https://" + Regex.Match(client.CurrentPresence.Assets.LargeImageKey, linkRegex).Groups[1].Value;  // me when cloning doesnt properly clone
+                    } else {
+                        newPresence.Assets.SmallImageKey = "https://" + Regex.Match(client.CurrentPresence.Assets.SmallImageKey, linkRegex).Groups[1].Value;
+                    }
+
+                    newPresence.Details = "Playtesting " + Regex.Match(newPresence.Details, @"Editing (.*)").Groups[1].Value;
+                    client.SetPresence(newPresence);
+                    playtestingStudio = true;
+                } else if (line.Contains("[DFLog::MegaReplicatorLogDisconnectCleanUpLog] Destroying MegaReplicator.")) {
+                    if (!gaming) { break; }
+                    if (!playtestingStudio) { break; }
+                    RichPresence newPresence = client.CurrentPresence.Clone();
+                    string linkRegex = @"mp:external\/.*?\/https\/(.*)";
+                    if (Settings.Default.StudioSwapIconAndLogo) {
+                        newPresence.Assets.LargeImageKey = "https://" + Regex.Match(client.CurrentPresence.Assets.LargeImageKey, linkRegex).Groups[1].Value;
+                    } else {
+                        newPresence.Assets.SmallImageKey = "https://" + Regex.Match(client.CurrentPresence.Assets.SmallImageKey, linkRegex).Groups[1].Value;
+                    }
+                    newPresence.Details = "Editing " + Regex.Match(newPresence.Details, @"Playtesting (.*)").Groups[1].Value;
+                    client.SetPresence(newPresence);
+                    playtestingStudio = false;
                 }
             }
         }
