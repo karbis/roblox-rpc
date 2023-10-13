@@ -14,10 +14,8 @@ using System.Timers;
 using System.Windows.Forms;
 using System.Resources.Extensions;
 
-namespace bruhshot
-{
-    static class Program
-    {
+namespace bruhshot {
+    static class Program {
         /// <summary>
         /// The main entry point for the application.
         /// </summary>
@@ -31,8 +29,7 @@ namespace bruhshot
     }
 
 
-    public class MyCustomApplicationContext : ApplicationContext
-    {
+    public class MyCustomApplicationContext : ApplicationContext {
         private NotifyIcon trayIcon;
         static System.Timers.Timer lastTimer = null;
         static string currentPath = "";
@@ -42,7 +39,6 @@ namespace bruhshot
         static bool inPlayer = true;
         static int lastLineCount = 0;
         static string storedUsername = "";
-        static bool playtestingStudio = false;
 
         public MyCustomApplicationContext() {
             // Initialize Tray Icon
@@ -112,7 +108,7 @@ namespace bruhshot
 
         private static dynamic[] GetGameInfo(string placeId) {
             if (placeId == "0") {
-                dynamic[] returnValue2 = { "a Local File","","" };
+                dynamic[] returnValue2 = { "a Local File", "", "" };
 
                 return returnValue2;
             }
@@ -120,7 +116,7 @@ namespace bruhshot
             JObject info = QuickGet("https://apis.roblox.com/universes/v1/places/" + placeId + "/universe"); // why does the games.roblox.com version require authentication
             string universeId = (string)info["universeId"];
             JObject moreInfo = QuickGet("https://games.roblox.com/v1/games?universeIds=" + universeId);
-            string gameName = (string) moreInfo["data"][0]["name"];
+            string gameName = (string)moreInfo["data"][0]["name"];
             string creator = (string)moreInfo["data"][0]["creator"]["name"];
             if ((bool)moreInfo["data"][0]["creator"]["hasVerifiedBadge"]) { creator += " ✔"; };
             if ((string)moreInfo["data"][0]["creator"]["type"] == "User") { creator = "@" + creator; };
@@ -202,7 +198,7 @@ namespace bruhshot
 
         private static void OnFileUpdateForStudio(Object source, ElapsedEventArgs e) {
             var lines = Task.Run(async () => await ReadAllLinesAsync(currentPath)).Result;
-            if (lastLineCount == lines.Length) { return;  };
+            if (lastLineCount == lines.Length) { return; };
             lastLineCount = lines.Length;
             Array.Reverse(lines);
             if (lines.Length > 200) {
@@ -262,14 +258,12 @@ namespace bruhshot
                 } else if (line.Contains("RobloxIDEDoc::~RobloxIDEDoc - end")) {
                     if (!gaming) { break; }
                     gaming = false;
-                    playtestingStudio = false;
                     if (client != null) {
                         client.Dispose();
                     }
                     break;
                 } else if (line.Contains("About to exit the application, doing cleanup.")) {
                     gaming = false;
-                    playtestingStudio = false;
                     lastTimer.Stop();
                     lastTimer.Dispose();
                     if (client != null) {
@@ -277,33 +271,6 @@ namespace bruhshot
                     }
                     lastTimer = null;
                     break;
-                } else if (line.Contains("Studio Play Testing Playable Times")) {
-                    if (playtestingStudio) { break; }
-                    if (!gaming) { break; }
-                    RichPresence newPresence = client.CurrentPresence.Clone();
-                    string linkRegex = @"mp:external\/.*?\/https\/(.*)";
-                    if (Settings.Default.StudioSwapIconAndLogo) {
-                        newPresence.Assets.LargeImageKey = "https://" + Regex.Match(client.CurrentPresence.Assets.LargeImageKey, linkRegex).Groups[1].Value;  // me when cloning doesnt properly clone
-                    } else {
-                        newPresence.Assets.SmallImageKey = "https://" + Regex.Match(client.CurrentPresence.Assets.SmallImageKey, linkRegex).Groups[1].Value;
-                    }
-
-                    newPresence.Details = "Playtesting " + Regex.Match(newPresence.Details, @"Editing (.*)").Groups[1].Value;
-                    client.SetPresence(newPresence);
-                    playtestingStudio = true;
-                } else if (line.Contains("[DFLog::MegaReplicatorLogDisconnectCleanUpLog] Destroying MegaReplicator.")) {
-                    if (!gaming) { break; }
-                    if (!playtestingStudio) { break; }
-                    RichPresence newPresence = client.CurrentPresence.Clone();
-                    string linkRegex = @"mp:external\/.*?\/https\/(.*)";
-                    if (Settings.Default.StudioSwapIconAndLogo) {
-                        newPresence.Assets.LargeImageKey = "https://" + Regex.Match(client.CurrentPresence.Assets.LargeImageKey, linkRegex).Groups[1].Value;
-                    } else {
-                        newPresence.Assets.SmallImageKey = "https://" + Regex.Match(client.CurrentPresence.Assets.SmallImageKey, linkRegex).Groups[1].Value;
-                    }
-                    newPresence.Details = "Editing " + Regex.Match(newPresence.Details, @"Playtesting (.*)").Groups[1].Value;
-                    client.SetPresence(newPresence);
-                    playtestingStudio = false;
                 }
             }
         }
