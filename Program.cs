@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using System.Timers;
 using System.Windows.Forms;
 using System.Resources.Extensions;
+using System.Diagnostics;
 
 namespace bruhshot {
     static class Program {
@@ -36,7 +37,6 @@ namespace bruhshot {
         static bool gaming = false;
         static DiscordRpcClient client;
         static HttpClient httpClient;
-        static bool inPlayer = true;
         static int lastLineCount = 0;
         static string storedUsername = "";
 
@@ -44,7 +44,7 @@ namespace bruhshot {
             // Initialize Tray Icon
 
             var contextMenu = new ContextMenuStrip();
-            ToolStripMenuItem titleThingy = new ToolStripMenuItem("Roblox RPC", null, null, "Roblox RPC");
+            ToolStripMenuItem titleThingy = new ToolStripMenuItem("Roblox Studio RPC", null, null, "Roblox Studio RPC");
             contextMenu.Items.Add(titleThingy);
             contextMenu.Items.Add(new ToolStripSeparator());
             var exitButton = new ToolStripMenuItem();
@@ -71,7 +71,8 @@ namespace bruhshot {
         }
         private static void FileCreated(object sender, FileSystemEventArgs e) {
             if (gaming) { return; };
-            inPlayer = e.Name.Contains("Player");
+            bool inPlayer = e.Name.Contains("Player");
+            if (inPlayer) { return; };
             if (lastTimer != null) {
                 lastTimer.Stop();
                 lastTimer.Dispose();
@@ -80,11 +81,7 @@ namespace bruhshot {
             lastTimer = new System.Timers.Timer(1000);
             lastTimer.AutoReset = true;
             lastTimer.Enabled = true;
-            if (inPlayer) {
-                lastTimer.Elapsed += OnFileUpdateForPlayer;
-            } else {
-                lastTimer.Elapsed += OnFileUpdateForStudio;
-            }
+            lastTimer.Elapsed += OnFileUpdateForStudio;
         }
 
         public static async Task<string[]> ReadAllLinesAsync(string path) {
@@ -117,85 +114,16 @@ namespace bruhshot {
             string universeId = (string)info["universeId"];
             JObject moreInfo = QuickGet("https://games.roblox.com/v1/games?universeIds=" + universeId);
             string gameName = (string)moreInfo["data"][0]["name"];
-            string creator = (string)moreInfo["data"][0]["creator"]["name"];
-            if ((bool)moreInfo["data"][0]["creator"]["hasVerifiedBadge"]) { creator += " ✔"; };
-            if ((string)moreInfo["data"][0]["creator"]["type"] == "User") { creator = "@" + creator; };
             if (gameName.Length < 2) { gameName += " "; };
-            creator = "By " + creator;
-            JObject iconData = QuickGet("https://thumbnails.roblox.com/v1/games/icons?universeIds=" + universeId + "&returnPolicy=PlaceHolder&size=512x512&format=Png&isCircular=false");
-            string iconLink = (string)iconData["data"][0]["imageUrl"];
 
-            if (creator == "By @Templates" && !inPlayer) { creator = ""; };
-            if (!Settings.Default.StudioRevealGameInformation && !inPlayer) { creator = ""; gameName = "a Game"; iconLink = ""; };
-            if (!Settings.Default.PlayerRevealGameInformation && inPlayer) { creator = ""; gameName = "Playing a Game"; iconLink = ""; };
+            if (!Settings.Default.StudioRevealGameInformation) { gameName = "a Game"; };
 
-            dynamic[] returnValue = { gameName, creator, iconLink };
+            dynamic[] returnValue = { gameName, "", "" };
 
             return returnValue;
         }
 
-        private static void OnFileUpdateForPlayer(Object source, ElapsedEventArgs e) {
-            var lines = Task.Run(async () => await ReadAllLinesAsync(currentPath)).Result;
-            if (lastLineCount == lines.Length) { return; };
-            lastLineCount = lines.Length;
-            Array.Reverse(lines);
-            if (lines.Length > 200) {
-                Array.Resize(ref lines, 200);
-            }
-
-            foreach (string line in lines) {
-                if (line.Contains(@"https://assetgame.roblox.com/Game/Join")) {
-                    if (gaming) { break; };
-                    string gameId = Regex.Match(line, @"placeId%3d(\d+)%26").Groups[1].Value;
-                    string userName = Regex.Match(line, @"UserName%22%3a%22([^%]+)%22").Groups[1].Value;
-                    storedUsername = userName;
-                    gaming = true;
-                    var gameInfo = GetGameInfo(gameId);
-
-                    DiscordRPC.Button[] buttons = { };
-                    if (Settings.Default.PlayerGameLinkButton) {
-                        buttons = buttons.Append(new DiscordRPC.Button() { Label = "Game Link", Url = "https://www.roblox.com/games/" + gameId + "/redirect" }).ToArray();
-                    }
-                    if (Settings.Default.PlayerJoinServerButton) {
-                        buttons = buttons.Append(new DiscordRPC.Button() { Label = "Join Server", Url = "roblox://experiences/start?placeId=" + gameId + "&gameInstanceId=" + Regex.Match(line, "\"jobId\":\"([^\"]+)\"").Groups[1].Value }).ToArray();
-                    }
-                    userName = "@" + userName;
-                    if (!Settings.Default.PlayerRevealUsername) {
-                        userName = "Roblox";
-                    }
-
-
-                    client = new DiscordRpcClient("1109427796494798949");
-                    client.Initialize();
-                    client.SetPresence(new RichPresence() {
-                        Details = gameInfo[0],
-                        State = gameInfo[1],
-                        Timestamps = new Timestamps { Start = DateTime.UtcNow },
-                        Buttons = buttons,
-                        Assets = new Assets() {
-                            LargeImageKey = gameInfo[2],
-                            LargeImageText = gameInfo[0],
-                            SmallImageKey = "logo3",
-                            SmallImageText = userName
-                        }
-                    });
-                    break;
-                } else if (line.Contains("unregisterMemoryPrioritizationCallback")) {
-                    gaming = false;
-                    lastTimer.Stop();
-                    lastTimer.Dispose();
-                    client.Dispose();
-                    lastTimer = null;
-                    break;
-                } else if (line.Contains("[FLog::WindowsLuaApp] Application did receive notification")) {
-                    if (!gaming) { break; };
-                    gaming = false;
-                    client.Dispose();
-                    break;
-                }
-            }
-        }
-
+        static string lastData = "";
         private static void OnFileUpdateForStudio(Object source, ElapsedEventArgs e) {
             var lines = Task.Run(async () => await ReadAllLinesAsync(currentPath)).Result;
             if (lastLineCount == lines.Length) { return; };
@@ -208,50 +136,21 @@ namespace bruhshot {
             foreach (string line in lines) {
                 if (line.Contains("RobloxIDEDoc::open - start")) {
                     if (gaming) { break; };
-                    Console.WriteLine("!");
                     string gameId = Regex.Match(line, @"placeId: (\d+)").Groups[1].Value;
                     gaming = true;
                     var gameInfo = GetGameInfo(gameId);
-
-                    DiscordRPC.Button[] buttons = { };
-                    if (Settings.Default.StudioGameLinkButton) {
-                        buttons = buttons.Append(new DiscordRPC.Button() { Label = "Game Link", Url = "https://www.roblox.com/games/" + gameId + "/redirect" }).ToArray();
-                    }
 
                     client = new DiscordRpcClient("1109820127605686273");
                     client.Initialize();
 
                     RichPresence richPresence = new RichPresence() {
-                        Details = "Editing " + gameInfo[0],
+                        Details = "IDK",
                         Timestamps = new Timestamps { Start = DateTime.UtcNow },
-                        Buttons = buttons,
                         Assets = new Assets() {
                             LargeImageKey = "logo3",
                             LargeImageText = "Roblox Studio"
                         }
                     };
-
-                    if (gameInfo[1] != "") {
-                        richPresence.State = gameInfo[1];
-                    };
-                    if (gameInfo[2] != "") {
-                        richPresence.Assets.SmallImageKey = gameInfo[2];
-                        richPresence.Assets.SmallImageText = gameInfo[0];
-                    };
-                    if (storedUsername != "" && Settings.Default.StudioRevealUsername) {
-                        richPresence.Assets.LargeImageText = "@" + storedUsername;
-                    }
-                    if (Settings.Default.StudioSwapIconAndLogo) {
-                        Assets rpcAssets = richPresence.Assets;
-                        string LIK = rpcAssets.LargeImageKey;
-                        string LIT = rpcAssets.LargeImageText;
-                        string SIK = rpcAssets.SmallImageKey;
-                        string SIT = rpcAssets.SmallImageText;
-                        rpcAssets.SmallImageText = LIT;
-                        rpcAssets.SmallImageKey = LIK;
-                        rpcAssets.LargeImageText = SIT;
-                        rpcAssets.LargeImageKey = SIK;
-                    }
 
                     client.SetPresence(richPresence);
                     break;
@@ -270,6 +169,28 @@ namespace bruhshot {
                         client.Dispose();
                     }
                     lastTimer = null;
+                    break;
+                } else if (line.Contains("[FLog::Output]") && gaming) {
+                    string output = Regex.Match(line, @"\[FLog::Output\] (.*)").Groups[1].Value;
+                    if (output == lastData) { break; }
+                    lastData = output;
+                    string[] data = output.Split('^');
+                    if (data.Length != 4) { return; }
+                    string newState = "Editing " + data[1];
+                    if (client.CurrentPresence.Details != newState) {
+                        client.UpdateDetails(newState);
+                    }
+                    string newState2 = data[2] + " lines";
+                    if (client.CurrentPresence.State != newState2) {
+                        client.UpdateState(newState2);
+                    }
+                    string newName = "script" + data[3];
+                    if (client.CurrentPresence.Assets.SmallImageKey != newName) {
+                        string toolTip = "Script";
+                        if (data[3] == "1") { toolTip = "LocalScript";  }
+                        if (data[3] == "2") { toolTip = "ModuleScript"; }
+                        client.UpdateSmallAsset(newName, toolTip);
+                    }
                     break;
                 }
             }
