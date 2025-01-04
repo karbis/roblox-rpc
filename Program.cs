@@ -57,13 +57,16 @@ namespace bruhshot {
 			};
         }
         public static string GetUserId() {
-            // since the installedplugins is located in a folder thats named by your user id,
-            // we need to go inside of the account switcher data and get the account that has the lowest user id
-            // as that is the one you are probably logged into
+			// since the installedplugins is located in a folder thats named by your user id,
+			// we need to go inside of the account switcher data and get the account that has the lowest user id
+			// as that is the one you are probably logged into
 
             using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Roblox\RobloxStudio\LoggedInUsersStore\https:\www.roblox.com")) {
-                string value = (string)key.GetValue("users");
-				Dictionary<string, dynamic> users = JsonConvert.DeserializeObject<Dictionary<string, dynamic>>(value.Substring(0,value.Length-1));
+                string value = ((string)key.GetValue("users")).Replace("};{",",");
+                while (value.Substring(value.Length-1, 1) != "}") {
+                    value = value.Substring(0, value.Length - 1);
+                }
+				Dictionary<string, dynamic> users = JsonConvert.DeserializeObject<Dictionary<string, dynamic>>(value);
                 long[] indices = new long[users.Count];
                 foreach (KeyValuePair<string, dynamic> pair in users) {
                     indices[indices.Length - 1] = Convert.ToInt64(pair.Key);
@@ -72,7 +75,7 @@ namespace bruhshot {
                 foreach (long id in indices) {
                     userId = Math.Min(id, userId);
                 }
-                return userId.ToString();
+				return userId.ToString();
             }
         }
 
