@@ -1,22 +1,15 @@
 ﻿using robloxrpc.Properties;
-using DiscordRPC;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.IO;
-using System.Linq;
-using System.Net;
-using System.Net.Http;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Timers;
 using System.Windows.Forms;
-using System.Resources.Extensions;
-using System.Diagnostics;
+using DiscordRPC;
+using Microsoft.Win32;
+using Newtonsoft.Json;
+using Timer = System.Timers.Timer;
 
 namespace bruhshot {
-    static class Program {
+	static class Program {
         /// <summary>
         /// The main entry point for the application.
         /// </summary>
@@ -32,13 +25,8 @@ namespace bruhshot {
 
     public class MyCustomApplicationContext : ApplicationContext {
         private NotifyIcon trayIcon;
-        static System.Timers.Timer lastTimer = null;
-        static string currentPath = "";
-        static bool gaming = false;
         static DiscordRpcClient client;
-        static HttpClient httpClient;
-        static int lastLineCount = 0;
-        static string storedUsername = "";
+        static string userId;
 
         public MyCustomApplicationContext() {
             // Initialize Tray Icon
@@ -58,143 +46,99 @@ namespace bruhshot {
                 Visible = true
             };
 
-            // we're gonna be spying on the logs directory cause the logs can display the current game id of the client
-            string logsDirectory = @"C:\Users\" + Environment.UserName + @"\AppData\Local\Roblox\logs";
-            var watcher = new FileSystemWatcher(logsDirectory);
-            watcher.Created += FileCreated;
-            watcher.EnableRaisingEvents = true;
-
-            HttpClientHandler handler = new HttpClientHandler() {
-                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
-            };
-            httpClient = new HttpClient(handler);
+            userId = GetUserId();
+            Timer timer = new Timer();
+            timer.Interval = 1000;
+            timer.AutoReset = true;
+            timer.Start();
+            timer.Elapsed += (_, _2) => {
+                Update();
+			};
         }
-        private static void FileCreated(object sender, FileSystemEventArgs e) {
-            if (gaming) { return; };
-            bool inPlayer = e.Name.Contains("Player");
-            if (inPlayer) { return; };
-            if (lastTimer != null) {
-                lastTimer.Stop();
-                lastTimer.Dispose();
-            }
-            currentPath = e.FullPath;
-            lastTimer = new System.Timers.Timer(1000);
-            lastTimer.AutoReset = true;
-            lastTimer.Enabled = true;
-            lastTimer.Elapsed += OnFileUpdateForStudio;
-        }
+        public static string GetUserId() {
+            // since the installedplugins is located in a folder thats named by your user id,
+            // we need to go inside of the account switcher data and get the account that has the lowest user id
+            // as that is the one you are probably logged into
 
-        public static async Task<string[]> ReadAllLinesAsync(string path) {
-            using (FileStream fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, bufferSize: 4096, useAsync: true))
-            using (StreamReader reader = new StreamReader(fileStream)) {
-                var lines = new List<string>();
-                string line;
-                while ((line = await reader.ReadLineAsync()) != null) {
-                    lines.Add(line);
+            using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Roblox\RobloxStudio\LoggedInUsersStore\https:\www.roblox.com")) {
+                string value = (string)key.GetValue("users");
+				Dictionary<string, dynamic> users = JsonConvert.DeserializeObject<Dictionary<string, dynamic>>(value.Substring(0,value.Length-1));
+                long[] indices = new long[users.Count];
+                foreach (KeyValuePair<string, dynamic> pair in users) {
+                    indices[indices.Length - 1] = Convert.ToInt64(pair.Key);
                 }
-                return lines.ToArray();
-            }
-        }
-
-        private static JObject QuickGet(string url) {
-            HttpResponseMessage response = httpClient.GetAsync(url).Result;
-            string jsonString = response.Content.ReadAsStringAsync().Result;
-            JObject jsonObject = JObject.Parse(jsonString);
-            return jsonObject;
-        }
-
-        private static dynamic[] GetGameInfo(string placeId) {
-            if (placeId == "0") {
-                dynamic[] returnValue2 = { "a Local File", "", "" };
-
-                return returnValue2;
-            }
-            Settings.Default.Reload();
-            JObject info = QuickGet("https://apis.roblox.com/universes/v1/places/" + placeId + "/universe"); // why does the games.roblox.com version require authentication
-            string universeId = (string)info["universeId"];
-            JObject moreInfo = QuickGet("https://games.roblox.com/v1/games?universeIds=" + universeId);
-            string gameName = (string)moreInfo["data"][0]["name"];
-            if (gameName.Length < 2) { gameName += " "; };
-
-            if (!Settings.Default.StudioRevealGameInformation) { gameName = "a Game"; };
-
-            dynamic[] returnValue = { gameName, "", "" };
-
-            return returnValue;
-        }
-
-        static string lastData = "";
-        private static void OnFileUpdateForStudio(Object source, ElapsedEventArgs e) {
-            var lines = Task.Run(async () => await ReadAllLinesAsync(currentPath)).Result;
-            if (lastLineCount == lines.Length) { return; };
-            lastLineCount = lines.Length;
-            Array.Reverse(lines);
-            if (lines.Length > 200) {
-                Array.Resize(ref lines, 200);
-            }
-
-            foreach (string line in lines) {
-                if (line.Contains("RobloxIDEDoc::open - start")) {
-                    if (gaming) { break; };
-                    string gameId = Regex.Match(line, @"placeId: (\d+)").Groups[1].Value;
-                    gaming = true;
-                    var gameInfo = GetGameInfo(gameId);
-
-                    client = new DiscordRpcClient("1109820127605686273");
-                    client.Initialize();
-
-                    RichPresence richPresence = new RichPresence() {
-                        Details = "IDK",
-                        Timestamps = new Timestamps { Start = DateTime.UtcNow },
-                        Assets = new Assets() {
-                            LargeImageKey = "logo3",
-                            LargeImageText = "Roblox Studio"
-                        }
-                    };
-
-                    client.SetPresence(richPresence);
-                    break;
-                } else if (line.Contains("RobloxIDEDoc::~RobloxIDEDoc - end")) {
-                    if (!gaming) { break; }
-                    gaming = false;
-                    if (client != null) {
-                        client.Dispose();
-                    }
-                    break;
-                } else if (line.Contains("About to exit the application, doing cleanup.")) {
-                    gaming = false;
-                    lastTimer.Stop();
-                    lastTimer.Dispose();
-                    if (client != null) {
-                        client.Dispose();
-                    }
-                    lastTimer = null;
-                    break;
-                } else if (line.Contains("[FLog::Output]") && gaming) {
-                    string output = Regex.Match(line, @"\[FLog::Output\] (.*)").Groups[1].Value;
-                    if (output == lastData) { break; }
-                    lastData = output;
-                    string[] data = output.Split('^');
-                    if (data.Length != 4) { return; }
-                    string newState = "Editing " + data[1];
-                    if (client.CurrentPresence.Details != newState) {
-                        client.UpdateDetails(newState);
-                    }
-                    string newState2 = data[2] + " lines";
-                    if (client.CurrentPresence.State != newState2) {
-                        client.UpdateState(newState2);
-                    }
-                    string newName = "script" + data[3];
-                    if (client.CurrentPresence.Assets.SmallImageKey != newName) {
-                        string toolTip = "Script";
-                        if (data[3] == "1") { toolTip = "LocalScript";  }
-                        if (data[3] == "2") { toolTip = "ModuleScript"; }
-                        client.UpdateSmallAsset(newName, toolTip);
-                    }
-                    break;
+                long userId = 9999999999999999;
+                foreach (long id in indices) {
+                    userId = Math.Min(id, userId);
                 }
+                return userId.ToString();
             }
         }
+
+        enum Status {
+            NotRunning,
+            Active,
+            NoScript
+        }
+        class RpcData {
+            public Status Status = Status.Active;
+            public long Lines = 0;
+            public byte Type = 0;
+            public string Name = "";
+        }
+        public static void Update() {
+            string path = $@"C:\Users\{Environment.UserName}\AppData\Local\Roblox\{userId}\InstalledPlugins\0\settings.json";
+            if (!File.Exists(path)) return;
+            string contents = "";
+            try {
+                contents = File.ReadAllText(path);
+            } catch {
+                return;
+            }
+
+            Dictionary<string, dynamic> settings = JsonConvert.DeserializeObject<Dictionary<string, dynamic>>(contents);
+            if (!settings.ContainsKey("RpcData")) return;
+            RpcData data = settings["RpcData"].ToObject<RpcData>();
+
+            if (data.Status == Status.NotRunning) {
+                if (client == null) return;
+                client.Dispose();
+                client = null;
+                return;
+            }
+
+            if (client == null) {
+                client = new DiscordRpcClient("1109820127605686273");
+                client.Initialize();
+			}
+            
+            if (data.Status == Status.NoScript) {
+                UpdatePresence($"Editing {data.Name}", null);
+            } else if (data.Status == Status.Active) {
+                string smallAssetToolTip = (data.Type == 0) ? "Script" : (data.Type == 1) ? "LocalScript" : (data.Type == 2) ? "ModuleScript" : "";
+				UpdatePresence($"Editing {data.Name}", $"{data.Lines} lines", $"script{data.Type}", smallAssetToolTip);
+			}
+		}
+
+        public static void UpdatePresence(string details, string state, string smallAssetName = null, string smallAssetToolTip = null) {
+            RichPresence presence = client.CurrentPresence?.Clone() ?? new RichPresence();
+            if (!presence.HasTimestamps()) {
+                presence.Timestamps = new Timestamps() { Start = DateTime.UtcNow };
+			}
+            if (!presence.HasAssets()) {
+                presence.Assets = new Assets() {
+					LargeImageKey = "logo3",
+					LargeImageText = "Roblox Studio"
+				};
+            }
+
+			if (presence.State == state && presence.Details == details && (presence.Assets.SmallImageKey == smallAssetName)) return;
+			presence.State = state;
+            presence.Details = details;
+            presence.Assets.SmallImageKey = smallAssetName;
+            presence.Assets.SmallImageText = smallAssetToolTip;
+            client.SetPresence(presence);
+		}
 
         void Exit(object sender, EventArgs e) {
             // Hide tray icon, otherwise it will remain shown until user mouses over it
