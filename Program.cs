@@ -67,9 +67,9 @@ namespace bruhshot {
                     value = value.Substring(0, value.Length - 1);
                 }
 				Dictionary<string, dynamic> users = JsonConvert.DeserializeObject<Dictionary<string, dynamic>>(value);
-                long[] indices = new long[users.Count];
+                List<long> indices = [];
                 foreach (KeyValuePair<string, dynamic> pair in users) {
-                    indices[indices.Length - 1] = Convert.ToInt64(pair.Key);
+                    indices.Add(Convert.ToInt64(pair.Key));
                 }
                 long userId = 9999999999999999;
                 foreach (long id in indices) {
