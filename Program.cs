@@ -8,6 +8,7 @@ using Microsoft.Win32;
 using Newtonsoft.Json;
 using Timer = System.Timers.Timer;
 
+#pragma warning disable CA1416 // Validate platform compatibility
 namespace bruhshot {
 	static class Program {
         /// <summary>
@@ -29,9 +30,9 @@ namespace bruhshot {
         static string userId;
 
         public MyCustomApplicationContext() {
-            // Initialize Tray Icon
+			// Initialize Tray Icon
 
-            var contextMenu = new ContextMenuStrip();
+			var contextMenu = new ContextMenuStrip();
             ToolStripMenuItem titleThingy = new ToolStripMenuItem("Roblox Studio RPC", null, null, "Roblox Studio RPC");
             contextMenu.Items.Add(titleThingy);
             contextMenu.Items.Add(new ToolStripSeparator());
@@ -40,13 +41,13 @@ namespace bruhshot {
             exitButton.Text = "Exit";
             exitButton.Click += Exit;
 
-            trayIcon = new NotifyIcon() {
+			trayIcon = new NotifyIcon() {
                 Icon = Resources.AppIcon,
                 ContextMenuStrip = contextMenu,
                 Visible = true
             };
 
-            userId = GetUserId();
+			userId = GetUserId();
             Timer timer = new Timer();
             timer.Interval = 1000;
             timer.AutoReset = true;
