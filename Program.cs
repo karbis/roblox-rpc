@@ -92,7 +92,7 @@ namespace robloxrpc {
 			public long PlaceId;
 			public bool Playtesting;
 		}
-		static string[] typeToolTips = ["Script","LocalScript","ModuleScript","[Disabled] Script","[Disabled] LocalScript"];
+		static string[] typeToolTips = ["Script","LocalScript","ModuleScript"];
 		public static void Update() {
 			string path = $@"C:\Users\{Environment.UserName}\AppData\Local\Roblox\{userId}\InstalledPlugins\0\settings.json";
 			if (!File.Exists(path)) return;
