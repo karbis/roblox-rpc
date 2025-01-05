@@ -28,6 +28,8 @@ namespace robloxrpc {
 		static DiscordRpcClient client;
 		static string userId;
 		static GameInfo cachedGameInfo;
+		static Dictionary<string, DateTime> timestamps = [];
+		static string currentTimestamp = "";
 
 		public MyCustomApplicationContext() {
 			// Initialize Tray Icon
@@ -112,6 +114,8 @@ namespace robloxrpc {
 					cachedGameInfo.Dispose();
 					cachedGameInfo = null;
 				}
+				timestamps.Clear();
+				timestamps.TrimExcess();
 
 				if (client == null) return;
 				client.Dispose();
@@ -122,10 +126,18 @@ namespace robloxrpc {
 			if (client == null) {
 				client = new DiscordRpcClient("1109820127605686273");
 				client.Initialize();
+				timestamps.Add("Editing", DateTime.UtcNow);
+				timestamps.Add("Playtesting", DateTime.UtcNow);
+				currentTimestamp = "Editing";
 			}
 
 			if (data.Status == Status.NoScript) {
 				string verb = (data.Playtesting) ? "Playtesting" : "Editing";
+				if (verb != currentTimestamp && verb == "Playtesting") {
+					timestamps["Playtesting"] = DateTime.UtcNow;
+				}
+				currentTimestamp = verb;
+
 				if (cachedGameInfo == null) {
 					cachedGameInfo = new GameInfo(data.PlaceId);
 					cachedGameInfo.GameInfoRecieved += Update;
@@ -159,6 +171,7 @@ namespace robloxrpc {
 			presence.Details = details;
 			presence.Assets.SmallImageKey = smallAssetName;
 			presence.Assets.SmallImageText = smallAssetToolTip;
+			presence.Timestamps.Start = timestamps[currentTimestamp];
 			client.SetPresence(presence);
 		}
 
