@@ -121,7 +121,7 @@ namespace robloxrpc {
 				client = new DiscordRpcClient("1109820127605686273");
 				client.Initialize();
 			}
-			
+
 			if (data.Status == Status.NoScript) {
 				if (cachedGameInfo == null) {
 					cachedGameInfo = new GameInfo(data.PlaceId);

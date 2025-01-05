@@ -30,14 +30,14 @@ namespace robloxrpc {
 				GameName = "Local File";
 			} else {
 				GameDetails details = GetAsync<GameDetails>($"https://economy.roblox.com/v2/assets/{PlaceId}/details");
-				if (details == null) return;
+				if (details == null || details.Name == null) return;
 				GameName = details.Name;
 				Creator = $"{(details.Creator.CreatorType == CreatorType.User ? "@" : "")}{details.Creator.Name}{(details.Creator.HasVerifiedBadge ? VERIFIED_BADGE : "")}";
 			}
 
 			long gameId = (isLocalFile) ? 95206881 : PlaceId;
 			IconDetails icon = GetAsync<IconDetails>($"https://thumbnails.roblox.com/v1/places/gameicons?placeIds={gameId}&format=Png&size=256x256");
-			if (icon == null || Invalidated) return;
+			if (icon == null || icon.data == null || Invalidated) return;
 			IconLink = icon.data[0].imageUrl;
 			Ready = true;
 			GameInfoRecieved?.Invoke();
