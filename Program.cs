@@ -90,7 +90,9 @@ namespace robloxrpc {
 			public byte Type;
 			public string Name;
 			public long PlaceId;
+			public bool Playtesting;
 		}
+		static string[] typeToolTips = ["Script","LocalScript","ModuleScript","[Disabled] Script","[Disabled] LocalScript","[Disabled] ModuleScript"];
 		public static void Update() {
 			string path = $@"C:\Users\{Environment.UserName}\AppData\Local\Roblox\{userId}\InstalledPlugins\0\settings.json";
 			if (!File.Exists(path)) return;
@@ -123,20 +125,20 @@ namespace robloxrpc {
 			}
 
 			if (data.Status == Status.NoScript) {
+				string verb = (data.Playtesting) ? "Playtesting" : "Editing";
 				if (cachedGameInfo == null) {
 					cachedGameInfo = new GameInfo(data.PlaceId);
 					cachedGameInfo.GameInfoRecieved += Update;
-					UpdatePresence($"Editing", null);
+					UpdatePresence(verb, null);
 				} else if (!cachedGameInfo.Ready) {
-					UpdatePresence($"Editing", null);
+					UpdatePresence(verb, null);
 				} else {
 					string creator = (cachedGameInfo.Creator == null) ? null : $"By {cachedGameInfo.Creator}";
 					string smallAssetToolTip = (data.PlaceId == 0) ? null : cachedGameInfo.GameName;
-					UpdatePresence($"Editing {cachedGameInfo.GameName}", creator, cachedGameInfo.IconLink, smallAssetToolTip);
+					UpdatePresence($"{verb} {cachedGameInfo.GameName}", creator, cachedGameInfo.IconLink, smallAssetToolTip);
 				}
 			} else if (data.Status == Status.Active) {
-				string smallAssetToolTip = (data.Type == 0) ? "Script" : (data.Type == 1) ? "LocalScript" : (data.Type == 2) ? "ModuleScript" : "";
-				UpdatePresence($"Editing {data.Name}", $"{data.Lines} lines", $"scriptnewer{data.Type}", smallAssetToolTip);
+				UpdatePresence($"Editing {data.Name}", $"{data.Lines} lines", $"scriptnewer{data.Type}", typeToolTips[data.Type]);
 			}
 		}
 
