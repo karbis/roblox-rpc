@@ -126,8 +126,7 @@ namespace robloxrpc {
 			if (client == null) {
 				client = new DiscordRpcClient("1109820127605686273");
 				client.Initialize();
-				timestamps.Add("Editing", DateTime.UtcNow);
-				timestamps.Add("Playtesting", DateTime.UtcNow);
+				timestamps["Editing"] = DateTime.UtcNow;
 				currentTimestamp = "Editing";
 			}
 
