@@ -38,6 +38,7 @@ namespace robloxrpc {
 			ToolStripMenuItem titleThingy = new ToolStripMenuItem("Roblox Studio RPC", null, null, "Roblox Studio RPC");
 			contextMenu.Items.Add(titleThingy);
 			contextMenu.Items.Add(new ToolStripSeparator());
+			contextMenu.Items.Add(new SettingsDropdown());
 			var exitButton = new ToolStripMenuItem();
 			contextMenu.Items.AddRange(new ToolStripItem[] { exitButton });
 			exitButton.Text = "Exit";
@@ -109,7 +110,7 @@ namespace robloxrpc {
 			if (!settings.ContainsKey("RpcData")) return;
 			RpcData data = settings["RpcData"].ToObject<RpcData>();
 
-			if (data.Status == Status.NotRunning) {
+			if (data.Status == Status.NotRunning || !Settings.Default.StudioEnabled) {
 				if (cachedGameInfo != null) {
 					cachedGameInfo.Dispose();
 					cachedGameInfo = null;
@@ -144,16 +145,24 @@ namespace robloxrpc {
 				} else if (!cachedGameInfo.Ready) {
 					UpdatePresence(verb, null);
 				} else {
-					string creator = (cachedGameInfo.Creator == null) ? null : $"By {cachedGameInfo.Creator}";
-					string smallAssetToolTip = (data.PlaceId == 0) ? null : cachedGameInfo.GameName;
-					UpdatePresence($"{verb} {cachedGameInfo.GameName}", creator, cachedGameInfo.IconLink, smallAssetToolTip);
+					string creator = (cachedGameInfo.Creator == null || !Settings.Default.StudioRevealUsername) ? null : $"By {cachedGameInfo.Creator}";
+					string gameName = cachedGameInfo.GameName;
+					string iconLink = cachedGameInfo.IconLink;
+					if (!Settings.Default.StudioRevealGameName) {
+						gameName = "a game";
+						iconLink = null;
+					}
+
+					string smallAssetToolTip = (data.PlaceId == 0) ? null : gameName;
+
+					UpdatePresence($"{verb} {gameName}", creator, iconLink, smallAssetToolTip, Settings.Default.StudioSwapIconAndLogo);
 				}
 			} else if (data.Status == Status.Active) {
 				UpdatePresence($"Editing {data.Name}", $"{data.Lines} lines", $"scriptnewer{data.Type}", typeToolTips[data.Type]);
 			}
 		}
 
-		public static void UpdatePresence(string details, string state, string smallAssetName = null, string smallAssetToolTip = null) {
+		public static void UpdatePresence(string details, string state, string smallAssetName = null, string smallAssetToolTip = null, bool swap = false) {
 			RichPresence presence = client.CurrentPresence?.Clone() ?? new RichPresence();
 			if (!presence.HasTimestamps()) {
 				presence.Timestamps = new Timestamps() { Start = DateTime.UtcNow };
@@ -163,14 +172,26 @@ namespace robloxrpc {
 					LargeImageKey = "logo3",
 					LargeImageText = "Roblox Studio"
 				};
+			} else {
+				presence.Assets.LargeImageKey = "logo3";
+				presence.Assets.LargeImageText = "Roblox Studio";
 			}
 
-			if (presence.State == state && presence.Details == details && (presence.Assets.SmallImageKey == smallAssetName)) return;
+			if (presence.State == state && presence.Details == details && (presence.Assets.SmallImageKey == smallAssetName || presence.Assets.LargeImageKey == smallAssetName)) return;
 			presence.State = state;
 			presence.Details = details;
 			presence.Assets.SmallImageKey = smallAssetName;
 			presence.Assets.SmallImageText = smallAssetToolTip;
 			presence.Timestamps.Start = timestamps[currentTimestamp];
+			if (swap) {
+				presence.Assets = new Assets() {
+					LargeImageKey = smallAssetName,
+					LargeImageText = smallAssetToolTip,
+					SmallImageKey = "logo3",
+					SmallImageText = "Roblox Studio",
+				};
+			}
+
 			client.SetPresence(presence);
 		}
 

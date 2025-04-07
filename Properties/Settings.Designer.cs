@@ -12,7 +12,7 @@ namespace robloxrpc.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "16.10.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "17.8.0.0")]
     internal sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase {
         
         private static Settings defaultInstance = ((Settings)(global::System.Configuration.ApplicationSettingsBase.Synchronized(new Settings())));
@@ -26,60 +26,12 @@ namespace robloxrpc.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public bool PlayerRevealUsername {
+        public bool StudioRevealGameName {
             get {
-                return ((bool)(this["PlayerRevealUsername"]));
+                return ((bool)(this["StudioRevealGameName"]));
             }
             set {
-                this["PlayerRevealUsername"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool PlayerJoinServerButton {
-            get {
-                return ((bool)(this["PlayerJoinServerButton"]));
-            }
-            set {
-                this["PlayerJoinServerButton"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public bool PlayerGameLinkButton {
-            get {
-                return ((bool)(this["PlayerGameLinkButton"]));
-            }
-            set {
-                this["PlayerGameLinkButton"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public bool StudioRevealGameInformation {
-            get {
-                return ((bool)(this["StudioRevealGameInformation"]));
-            }
-            set {
-                this["StudioRevealGameInformation"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public bool PlayerRevealGameInformation {
-            get {
-                return ((bool)(this["PlayerRevealGameInformation"]));
-            }
-            set {
-                this["PlayerRevealGameInformation"] = value;
+                this["StudioRevealGameName"] = value;
             }
         }
         
@@ -98,24 +50,24 @@ namespace robloxrpc.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool StudioGameLinkButton {
-            get {
-                return ((bool)(this["StudioGameLinkButton"]));
-            }
-            set {
-                this["StudioGameLinkButton"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("False")]
         public bool StudioSwapIconAndLogo {
             get {
                 return ((bool)(this["StudioSwapIconAndLogo"]));
             }
             set {
                 this["StudioSwapIconAndLogo"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool StudioEnabled {
+            get {
+                return ((bool)(this["StudioEnabled"]));
+            }
+            set {
+                this["StudioEnabled"] = value;
             }
         }
     }
