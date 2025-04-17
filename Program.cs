@@ -7,6 +7,7 @@ using DiscordRPC;
 using Microsoft.Win32;
 using Newtonsoft.Json;
 using Timer = System.Timers.Timer;
+using System.Diagnostics;
 
 #pragma warning disable CA1416 // Validate platform compatibility
 namespace robloxrpc {
@@ -164,20 +165,21 @@ namespace robloxrpc {
 
 		public static void UpdatePresence(string details, string state, string smallAssetName = null, string smallAssetToolTip = null, bool swap = false) {
 			RichPresence presence = client.CurrentPresence?.Clone() ?? new RichPresence();
+			string assetKey = (!presence.HasAssets()) ? null : (swap) ? presence.Assets.LargeImageKey : presence.Assets.SmallImageKey;
 			if (!presence.HasTimestamps()) {
 				presence.Timestamps = new Timestamps() { Start = DateTime.UtcNow };
 			}
 			if (!presence.HasAssets()) {
 				presence.Assets = new Assets() {
-					LargeImageKey = "logo5",
+					LargeImageKey = "icon4",
 					LargeImageText = "Roblox Studio"
 				};
 			} else {
-				presence.Assets.LargeImageKey = "logo5";
+				presence.Assets.LargeImageKey = "icon4";
 				presence.Assets.LargeImageText = "Roblox Studio";
 			}
 
-			if (presence.State == state && presence.Details == details && (presence.Assets.SmallImageKey == smallAssetName || presence.Assets.LargeImageKey == smallAssetName)) return;
+			if (presence.State == state && presence.Details == details && AreKeysEqual(assetKey, smallAssetName)) return;
 			presence.State = state;
 			presence.Details = details;
 			presence.Assets.SmallImageKey = smallAssetName;
@@ -187,12 +189,20 @@ namespace robloxrpc {
 				presence.Assets = new Assets() {
 					LargeImageKey = smallAssetName,
 					LargeImageText = smallAssetToolTip,
-					SmallImageKey = "logo5",
+					SmallImageKey = "icon4",
 					SmallImageText = "Roblox Studio",
 				};
 			}
 
 			client.SetPresence(presence);
+		}
+
+		static bool AreKeysEqual(string key1, string key2) {
+			if (key1 == key2) return true;
+			if (key1 != null && key1.StartsWith("mp:external")) {
+				return key1.EndsWith(key2.Substring(8));
+			}
+			return false;
 		}
 
 		void Exit(object sender, EventArgs e) {
