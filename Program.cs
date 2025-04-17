@@ -169,11 +169,11 @@ namespace robloxrpc {
 			}
 			if (!presence.HasAssets()) {
 				presence.Assets = new Assets() {
-					LargeImageKey = "logo4",
+					LargeImageKey = "logo5",
 					LargeImageText = "Roblox Studio"
 				};
 			} else {
-				presence.Assets.LargeImageKey = "logo4";
+				presence.Assets.LargeImageKey = "logo5";
 				presence.Assets.LargeImageText = "Roblox Studio";
 			}
 
@@ -187,7 +187,7 @@ namespace robloxrpc {
 				presence.Assets = new Assets() {
 					LargeImageKey = smallAssetName,
 					LargeImageText = smallAssetToolTip,
-					SmallImageKey = "logo4",
+					SmallImageKey = "logo5",
 					SmallImageText = "Roblox Studio",
 				};
 			}
